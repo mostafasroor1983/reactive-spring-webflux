@@ -4,16 +4,17 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class FluxAndMonoGeneratorService
 {
 	public static void main(String[] args)
 	{
-		/*namesFlux().subscribe(print());
+		/*
+		namesFlux().subscribe(print());
 		System.out.println("-----------------------");
 		nameMono().subscribe(print());
 		System.out.println("-----------------------");
@@ -22,7 +23,7 @@ public class FluxAndMonoGeneratorService
 		namesFlux_flatmap_async().subscribe(print());*/
 
 		System.out.println("-----------------------");
-		nameMono_flatMap().subscribe(s-> System.out.println(s.toString()));
+		nameMono_flatMap().subscribe(s -> System.out.println(s.toString()));
 	}
 
 	private static Consumer<String> print()
@@ -77,6 +78,53 @@ public class FluxAndMonoGeneratorService
 		return Flux.fromIterable(List.of("Mostafa", "Wael")).concatMap(s -> splitArray_withDelay(s)).log();
 	}
 
+	public static Flux<String> namesFlux_transform(int length)
+	{
+		Function<Flux<String>, Flux<String>> transformFunc = name -> name.map(String::toUpperCase).filter(s -> s.length() > length);
+		return Flux.fromIterable(List.of("Mostafa", "Wael", "Malek", "Hasan")).transform(transformFunc).defaultIfEmpty("default").log();
+	}
+
+	public static Flux<String> concatFluxes()
+	{
+		Flux<String> flux1 = Flux.just("A", "B", "C");
+		return flux1.concatWith(Flux.just("D", "E", "F"));
+	}
+
+	public static Flux<String> mergeFluxes()
+	{
+		Flux<String> flux1 = Flux.just("A", "B", "C").delayElements(Duration.ofMillis(100));
+		return flux1.mergeWith(Flux.just("D", "E", "F").delayElements(Duration.ofMillis(125)));
+	}
+
+	public static Flux<String> mergeSequentialFluxes()
+	{
+		Flux<String> flux1 = Flux.just("A", "B", "C");
+		Flux<String> flux2 = Flux.just("D", "E", "F");
+		return Flux.mergeSequential(flux1, flux2);
+	}
+
+	public static Flux<String> zipFluxes()
+	{
+		Flux<String> flux1 = Flux.just("A", "B", "C");
+		return flux1.zipWith(Flux.just("D", "E", "F"), (x, y) -> x + y).log();
+	}
+
+	public static Flux<String> zip4Fluxes()
+	{
+		Flux<String> flux1 = Flux.just("A", "B", "C");
+		Flux<String> flux2 = Flux.just("D", "E", "F");
+		Flux<String> flux3 = Flux.just("1", "2", "3");
+		Flux<String> flux4 = Flux.just("4", "5", "6");
+		return Flux.zip(flux1, flux2, flux3, flux4)
+				   .map(t4 -> t4.getT1() + t4.getT2() + t4.getT3() + t4.getT4()).log();
+	}
+
+	public static Flux<String> concatMono()
+	{
+		Mono<String> mono1 = Mono.just("A");
+		return mono1.concatWith(Flux.just("D", "E", "F"));
+	}
+
 	// ALEX => FLUX(A,L,E,X)
 	public static Flux<String> splitArray(String name)
 	{
@@ -100,9 +148,12 @@ public class FluxAndMonoGeneratorService
 
 	public static Mono<List<String>> nameMono_flatMap()
 	{
-		return Mono.just("Mostafa")
-				   .map(String::toUpperCase)
-				   .flatMap(s -> splitMonoString(s)).log();
+		return Mono.just("Mostafa").map(String::toUpperCase).flatMap(s -> splitMonoString(s)).log();
+	}
+
+	public static Flux<String> nameMono_flatMapMany()
+	{
+		return Mono.just("Mostafa").map(String::toUpperCase).flatMapMany(s -> splitArray(s)).log();
 	}
 
 	public static Mono<List<String>> splitMonoString(String s)
